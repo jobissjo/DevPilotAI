@@ -7,6 +7,8 @@ from pathlib import Path
 import unittest
 import uuid
 
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["SECRET_KEY"] = "test-secret-key-with-at-least-32-bytes"
 
@@ -266,10 +268,25 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
                 await repository.save(User(full_name="Duplicate", email="owner@example.com", password="hash"))
             self.assertIsNotNone(await repository.get_by_email("owner@example.com"))
 
+    async def test_frontend_cors_preflight(self):
+        response = await self.client.options("/api/repositories", headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:3000")
+        response = await self.client.options("/api/repositories", headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "POST",
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("access-control-allow-origin", response.headers)
+
 
 class ArchitectureTests(unittest.TestCase):
     def test_route_handlers_only_delegate_to_services(self):
-        for path in Path("app/routes").glob("*.py"):
+        for path in (BACKEND_DIR / "app/routes").glob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"))
             for node in tree.body:
                 if isinstance(node, ast.AsyncFunctionDef):
@@ -283,7 +300,9 @@ class ArchitectureTests(unittest.TestCase):
 
 class MigrationTests(unittest.TestCase):
     def setUp(self):
-        spec = importlib.util.spec_from_file_location("initial", "migrations/versions/0001_initial.py")
+        spec = importlib.util.spec_from_file_location(
+            "initial", BACKEND_DIR / "migrations/versions/0001_initial.py",
+        )
         self.migration = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.migration)
 
