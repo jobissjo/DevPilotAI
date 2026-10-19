@@ -15,7 +15,10 @@ async def get_hash_password(password: str) -> str:
 
 async def verify_password(password: str, hashed_password: str) -> bool:
     def verify(password: str, hashed_password: str) -> bool:
-        return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+        except ValueError:
+            return False
 
     return await asyncio.to_thread(verify, password, hashed_password)
 
@@ -35,4 +38,3 @@ async def create_token(
     return await asyncio.to_thread(
         jwt.encode, to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
-    
