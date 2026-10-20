@@ -196,6 +196,45 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.get(url, headers=self.headers)
         self.assertEqual(response.status_code, 404)
 
+    async def test_questions_require_completed_owned_job_and_return_sources(self):
+        repo_id = await self.create_repository()
+        job_id = await self.create_job(repo_id)
+        url = f"/api/jobs/{job_id}/questions"
+        response = await self.client.post(url, headers=self.headers,
+                                          json={"question": "Where is login?"})
+        self.assertEqual(response.status_code, 409)
+        response = await self.client.post(url, headers=self.headers,
+                                          json={"question": "  "})
+        self.assertEqual(response.status_code, 422)
+        other = await self.register_and_login("questioner@example.com")
+        response = await self.client.post(url, headers=other,
+                                          json={"question": "Where is login?"})
+        self.assertEqual(response.status_code, 404)
+
+        await self.client.patch(f"/api/jobs/{job_id}", headers=self.headers,
+                                json={"status": "running"})
+        await self.client.patch(f"/api/jobs/{job_id}", headers=self.headers,
+                                json={"status": "completed"})
+        response = await self.client.post(url, headers=self.headers,
+                                          json={"question": "Where is login?"})
+        self.assertEqual(response.status_code, 503)
+
+        match = {"source": "app/auth.py", "start_line": 12, "end_line": 24,
+                 "content": "def login(): pass"}
+        with patch.object(settings, "GROQ_API_KEY", "test-key"), \
+             patch("app.services.analysis_job_service.search_code", return_value=[match]) as search, \
+             patch("app.services.analysis_job_service.answer_from_code",
+                   new_callable=AsyncMock, return_value="Login is in app/auth.py [1].") as answer:
+            response = await self.client.post(url, headers=self.headers,
+                                              json={"question": "Where is login?"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["answer"], "Login is in app/auth.py [1].")
+        self.assertEqual(response.json()["sources"], [
+            {"source": "app/auth.py", "start_line": 12, "end_line": 24}
+        ])
+        search.assert_called_once_with(job_id, "Where is login?", 8)
+        answer.assert_awaited_once()
+
     async def test_failed_job_has_completion_time(self):
         repo_id = await self.create_repository()
         job_id = await self.create_job(repo_id)

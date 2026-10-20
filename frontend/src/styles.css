@@ -1775,6 +1775,58 @@ select {
   border-radius: 7px;
   padding: 2px 15px;
 }
+.qa-panel {
+  border-top: 1px solid #3d2d48;
+  margin-top: 22px;
+  padding-top: 20px;
+}
+.qa-panel h3, .qa-answer h4 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.qa-panel .muted {
+  font-size: 11px;
+  margin-bottom: 16px;
+}
+.qa-panel form {
+  display: grid;
+  gap: 10px;
+}
+.qa-panel label {
+  font-size: 12px;
+}
+.qa-panel textarea {
+  min-height: 84px;
+  resize: vertical;
+  padding: 12px;
+  color: #e2d7ed;
+  background: #100e14;
+  border: 1px solid #4a3b59;
+  border-radius: 7px;
+  font: inherit;
+}
+.qa-panel textarea:focus {
+  outline: 2px solid #ad8df0;
+  outline-offset: 2px;
+}
+.qa-panel form .button {
+  justify-self: end;
+}
+.qa-answer {
+  margin-top: 20px;
+  padding: 15px;
+  background: #211827;
+  border: 1px solid #3d2d48;
+  border-radius: 7px;
+}
+.qa-answer p {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+.qa-answer ol {
+  padding-left: 22px;
+  overflow-wrap: anywhere;
+}
 .json-block {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

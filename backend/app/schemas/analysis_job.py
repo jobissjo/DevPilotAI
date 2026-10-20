@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import field_validator
+from pydantic import StringConstraints, field_validator
 from sqlmodel import SQLModel
 
 from app.models.enums import JobStatus
@@ -35,3 +35,18 @@ class AnalysisJobPublic(SQLModel):
     error_message: str | None
     created_at: datetime
     completed_at: datetime | None
+
+
+class QuestionCreate(SQLModel):
+    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=1000)]
+
+
+class QuestionSource(SQLModel):
+    source: str
+    start_line: int
+    end_line: int
+
+
+class QuestionAnswer(SQLModel):
+    answer: str
+    sources: list[QuestionSource]

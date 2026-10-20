@@ -7,8 +7,8 @@
 
 ## Phase 2 — LangChain RAG
 - [x] Fetch and parse repository code
-- [ ] Implement chunking, embeddings, and pgvector search
-- [ ] Build repository Q&A with source file references
+- [x] Implement chunking, embeddings, and pgvector search
+- [x] Build repository Q&A with source file references
 
 ## Phase 3 — CrewAI Agents
 - [ ] Create code quality and security reviewer agents

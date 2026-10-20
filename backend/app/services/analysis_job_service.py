@@ -2,10 +2,15 @@ import uuid
 from datetime import UTC, datetime
 
 from app.core.errors import ServiceError
+from app.core.config import settings
 from app.models import AnalysisJob, JobStatus
 from app.repositories import AnalysisJobRepository
-from app.schemas.analysis_job import AnalysisJobCreate, AnalysisJobUpdate
+from app.schemas.analysis_job import (
+    AnalysisJobCreate, AnalysisJobUpdate, QuestionAnswer, QuestionSource,
+)
 from app.services.repository_service import RepositoryService
+from app.services.question_service import answer_from_code
+from app.services.vector_store import search_code
 from app.tasks.analysis import analyze_repository
 import asyncio
 
@@ -65,3 +70,26 @@ class AnalysisJobService:
 
     async def delete(self, user_id: int, job_id: uuid.UUID) -> None:
         await self.repository.delete(await self.get(user_id, job_id))
+
+    async def ask(self, user_id: int, job_id: uuid.UUID, question: str) -> QuestionAnswer:
+        job = await self.get(user_id, job_id)
+        if job.status != JobStatus.COMPLETED:
+            raise ServiceError(409, "Finish indexing this analysis before asking questions")
+        if not settings.GROQ_API_KEY:
+            raise ServiceError(503, "Set GROQ_API_KEY on the backend to enable Q&A")
+        try:
+            matches = await asyncio.to_thread(search_code, str(job_id), question, 8)
+        except Exception as exc:
+            raise ServiceError(503, "Code search is unavailable") from exc
+        if not matches:
+            return QuestionAnswer(
+                answer="I could not find indexed code for this analysis.", sources=[],
+            )
+        try:
+            answer = await answer_from_code(question, matches)
+        except Exception as exc:
+            raise ServiceError(502, "The answer model is unavailable") from exc
+        return QuestionAnswer(
+            answer=answer,
+            sources=[QuestionSource(**match) for match in matches],
+        )

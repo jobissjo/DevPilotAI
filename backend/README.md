@@ -54,6 +54,12 @@ Send the returned token as `Authorization: Bearer <token>` for the endpoints bel
 `GET /api/auth/users/me` is retained for existing clients. List endpoints accept
 `offset` (default 0) and `limit` (default 20, maximum 100).
 
+After a repository analysis completes, ask about its indexed code with
+`POST /api/jobs/{job_id}/questions` and `{ "question": "Where is login handled?" }`.
+The endpoint requires the job owner, searches that job's Chroma chunks, and returns
+an answer with source file paths and line ranges. Set `GROQ_API_KEY` in
+`backend/.env` to enable answers. `GROQ_MODEL` defaults to `openai/gpt-oss-20b`.
+
 Create repositories with `full_name` and a matching GitHub HTTPS `clone_url`.
 The backend verifies public repositories through GitHub's API and stores the returned
 `github_repo_id`. Private repositories require GitHub authentication, which is not

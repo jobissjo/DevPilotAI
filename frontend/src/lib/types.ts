@@ -26,6 +26,11 @@ export interface AnalysisJob {
   completed_at: string | null;
 }
 
+export interface QuestionAnswer {
+  answer: string;
+  sources: { source: string; start_line: number; end_line: number }[];
+}
+
 export type RepositoryInput = Pick<
   Repository,
   "full_name" | "clone_url"

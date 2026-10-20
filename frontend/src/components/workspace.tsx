@@ -684,6 +684,7 @@ export function Workspace({
       {selectedJob && (
         <JobDetails
           job={selectedJob}
+          onAsk={demo ? undefined : (question) => api.askJob(selectedJob.id, question)}
           repository={repositories.find(
             (repo) => repo.id === selectedJob.repository_id,
           )}

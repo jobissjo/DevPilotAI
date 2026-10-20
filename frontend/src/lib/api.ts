@@ -2,6 +2,7 @@ import type {
   AnalysisJob,
   Repository,
   RepositoryInput,
+  QuestionAnswer,
   User,
   UserUpdate,
 } from "./types";
@@ -46,6 +47,7 @@ export class ApiClient {
   private async request<T>(
     path: string,
     options: RequestInit = {},
+    timeoutMs = 15000,
   ): Promise<T> {
     const headers = new Headers(options.headers);
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
@@ -56,7 +58,7 @@ export class ApiClient {
       response = await fetch(`${API_BASE}${path}`, {
         ...options,
         headers,
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch {
       throw new ApiError(
@@ -139,6 +141,12 @@ export class ApiClient {
       method: "POST",
       body: JSON.stringify({}),
     });
+  }
+  askJob(id: string, question: string) {
+    return this.request<QuestionAnswer>(`/jobs/${id}/questions`, {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }, 90000);
   }
   deleteJob(id: string) {
     return this.request<void>(`/jobs/${id}`, { method: "DELETE" });

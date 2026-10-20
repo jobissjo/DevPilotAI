@@ -49,6 +49,17 @@ describe("DevPilot API client", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("sends an authenticated question to its analysis job", async () => {
+    const response = { answer: "Login is in auth.py [1].", sources: [] };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(response)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(new ApiClient("token").askJob("job-1", "Where is login?"))
+      .resolves.toEqual(response);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/jobs/job-1/questions");
+    expect(fetchMock.mock.calls[0][1].headers.get("Authorization")).toBe("Bearer token");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ question: "Where is login?" });
+  });
+
   it("clears an expired authenticated session and preserves the API error", async () => {
     const expired = vi.fn();
     vi.stubGlobal(

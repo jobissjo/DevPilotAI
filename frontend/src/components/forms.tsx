@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { AnalysisJob, Repository, RepositoryInput } from "../lib/types";
+import type { AnalysisJob, QuestionAnswer, Repository, RepositoryInput } from "../lib/types";
 import { Icon } from "./icon";
 import { ErrorMessage, Modal, StatusBadge, errorMessage } from "./ui";
 
@@ -262,14 +262,36 @@ function Findings({ value, depth = 0 }: { value: unknown; depth?: number }) {
 export function JobDetails({
   job,
   repository,
+  onAsk,
   onClose,
   onDelete,
 }: {
   job: AnalysisJob;
   repository?: Repository;
+  onAsk?: (question: string) => Promise<QuestionAnswer>;
   onClose: () => void;
   onDelete: () => void;
 }) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<QuestionAnswer | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState("");
+
+  async function ask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onAsk || !question.trim()) return;
+    setAsking(true);
+    setAskError("");
+    setAnswer(null);
+    try {
+      setAnswer(await onAsk(question.trim()));
+    } catch (cause) {
+      setAskError(errorMessage(cause));
+    } finally {
+      setAsking(false);
+    }
+  }
+
   return (
     <Modal
       title="Analysis details"
@@ -319,6 +341,45 @@ export function JobDetails({
             </span>
           </div>
         )
+      )}
+      {job.status === "completed" && onAsk && (
+        <section className="qa-panel">
+          <h3>Ask about this repository</h3>
+          <p className="muted">Answers use code indexed by this analysis.</p>
+          <form onSubmit={(event) => void ask(event)}>
+            <label htmlFor="repo-question">Your question</label>
+            <textarea
+              id="repo-question"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Where is user login handled?"
+              maxLength={1000}
+              required
+            />
+            <button className="button primary" disabled={asking || !question.trim()}>
+              {asking ? "Finding answer…" : "Ask question"}
+            </button>
+          </form>
+          {askError && <ErrorMessage>{askError}</ErrorMessage>}
+          {answer && (
+            <div className="qa-answer" aria-live="polite">
+              <h4>Answer</h4>
+              <p>{answer.answer}</p>
+              {answer.sources.length > 0 && (
+                <>
+                  <h4>Source excerpts</h4>
+                  <ol>
+                    {answer.sources.map((source, index) => (
+                      <li key={`${source.source}-${source.start_line}-${index}`}>
+                        <span className="mono">[{index + 1}] {source.source}:{source.start_line}–{source.end_line}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
+            </div>
+          )}
+        </section>
       )}
       <div className="modal-actions spread">
         <button className="button ghost danger-text" onClick={onDelete}>

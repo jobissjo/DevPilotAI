@@ -4,7 +4,10 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.core.dependencies import AnalysisJobs, CurrentUser
-from app.schemas.analysis_job import AnalysisJobCreate, AnalysisJobPublic, AnalysisJobUpdate
+from app.schemas.analysis_job import (
+    AnalysisJobCreate, AnalysisJobPublic, AnalysisJobUpdate,
+    QuestionAnswer, QuestionCreate,
+)
 
 router = APIRouter(tags=["analysis jobs"])
 
@@ -28,6 +31,14 @@ async def list_jobs(
 @router.get("/jobs/{job_id}", response_model=AnalysisJobPublic)
 async def read_job(job_id: uuid.UUID, current_user: CurrentUser, service: AnalysisJobs):
     return await service.get(current_user.id, job_id)
+
+
+@router.post("/jobs/{job_id}/questions", response_model=QuestionAnswer)
+async def ask_about_job(
+    job_id: uuid.UUID, data: QuestionCreate, current_user: CurrentUser,
+    service: AnalysisJobs,
+):
+    return await service.ask(current_user.id, job_id, data.question)
 
 
 @router.patch("/jobs/{job_id}", response_model=AnalysisJobPublic)

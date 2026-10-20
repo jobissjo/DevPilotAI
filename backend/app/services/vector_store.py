@@ -43,3 +43,21 @@ def index_chunks(
         )
 
     return len(chunks)
+
+
+def search_code(job_id: str, question: str, limit: int = 5) -> list[dict]:
+    documents = get_vector_store().similarity_search(
+        query=question,
+        k=limit,
+        filter={"job_id": job_id},
+    )
+
+    return [
+        {
+            "source": doc.metadata["source"],
+            "start_line": doc.metadata["start_line"],
+            "end_line": doc.metadata["end_line"],
+            "content": doc.page_content,
+        }
+        for doc in documents
+    ]
