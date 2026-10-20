@@ -89,10 +89,11 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
     async def create_job(self, repo_id):
         response = await self.client.post(
             f"/api/repositories/{repo_id}/jobs", headers=self.headers,
-            json={"commit_sha": "abc123"},
+            json={},
         )
         self.assertEqual(response.status_code, 201, response.text)
         self.assertEqual(response.json()["status"], "queued")
+        self.assertIsNone(response.json()["commit_sha"])
         return response.json()["id"]
 
     async def test_user_crud_and_password_change(self):

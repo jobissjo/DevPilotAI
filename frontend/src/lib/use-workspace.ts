@@ -92,19 +92,19 @@ export function useWorkspace(api: ApiClient, demo: boolean) {
     setJobs((current) => current.filter((item) => item.repository_id !== id));
   }
 
-  async function createJob(repoId: number, sha: string) {
+  async function createJob(repoId: number) {
     const job: AnalysisJob = demo
       ? {
           id: crypto.randomUUID(),
           repository_id: repoId,
           status: "queued",
-          commit_sha: sha || null,
+          commit_sha: null,
           findings_summary: null,
           error_message: null,
           created_at: new Date().toISOString(),
           completed_at: null,
         }
-      : await api.createJob(repoId, sha);
+      : await api.createJob(repoId);
     generation.current++;
     setLoading(false);
     setJobs((current) => [job, ...current]);

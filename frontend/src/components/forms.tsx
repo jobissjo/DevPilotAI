@@ -106,7 +106,7 @@ export function JobForm({
 }: {
   repositories: Repository[];
   defaultRepo?: number;
-  onSave: (repoId: number, sha: string) => Promise<void>;
+  onSave: (repoId: number) => Promise<void>;
   onClose: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -117,10 +117,7 @@ export function JobForm({
     setBusy(true);
     setError("");
     try {
-      await onSave(
-        Number(data.get("repository")),
-        String(data.get("commit_sha")).trim(),
-      );
+      await onSave(Number(data.get("repository")));
       onClose();
     } catch (cause) {
       setError(errorMessage(cause));
@@ -131,7 +128,7 @@ export function JobForm({
   return (
     <Modal
       title="Queue an analysis"
-      description="Choose the repository and, optionally, a specific commit to review."
+      description="Choose the repository to analyze in full."
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -150,10 +147,6 @@ export function JobForm({
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Commit SHA <span className="label-optional">optional</span>
-          <input name="commit_sha" placeholder="e.g. c7e91a23" maxLength={64} />
         </label>
         <div className="info-banner">
           <Icon name="clock" size={18} />
@@ -285,10 +278,7 @@ export function JobDetails({
     >
       <div className="job-detail-meta">
         <StatusBadge status={job.status} />
-        <span className="mono">
-          <Icon name="branch" size={14} />{" "}
-          {job.commit_sha?.slice(0, 12) || "No commit specified"}
-        </span>
+        <span className="mono">Full repository</span>
       </div>
       <dl className="detail-grid">
         <div>

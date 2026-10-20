@@ -16,7 +16,7 @@ class AnalysisJobService:
     async def create(self, user_id: int, repo_id: int, data: AnalysisJobCreate) -> AnalysisJob:
         await self.repositories.get(user_id, repo_id)
         return await self.repository.save(
-            AnalysisJob(repository_id=repo_id, **data.model_dump())
+            AnalysisJob(repository_id=repo_id)
         )
 
     async def get(self, user_id: int, job_id: uuid.UUID) -> AnalysisJob:

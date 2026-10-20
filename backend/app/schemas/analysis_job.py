@@ -9,7 +9,7 @@ from app.models.enums import JobStatus
 
 
 class AnalysisJobCreate(SQLModel):
-    commit_sha: str | None = None
+    pass
 
 
 class AnalysisJobUpdate(SQLModel):

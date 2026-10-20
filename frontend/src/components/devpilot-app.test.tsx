@@ -53,6 +53,7 @@ describe("Workspace integration", () => {
     expect(screen.getByText("platform-web")).toBeTruthy();
     expect(screen.queryByText("commerce-api")).toBeNull();
     await user.click(screen.getByRole("button", { name: "New analysis" }));
+    expect(within(screen.getByRole("dialog")).queryByLabelText(/Commit SHA/)).toBeNull();
     await user.click(
       within(screen.getByRole("dialog")).getByRole("button", {
         name: "Queue analysis",

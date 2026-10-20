@@ -58,7 +58,7 @@ Create repositories with `full_name` and a matching GitHub HTTPS `clone_url`.
 The backend verifies public repositories through GitHub's API and stores the returned
 `github_repo_id`. Private repositories require GitHub authentication, which is not
 configured yet.
-Create jobs with `{}` or an optional `commit_sha`. Jobs start as `queued` and may
+Create full repository analysis jobs with `{}`. Jobs start as `queued` and may
 transition to `running` or `failed`; running jobs may become `completed` or
 `failed`. The service sets `completed_at` when a job reaches a terminal status.
 Job updates also accept `commit_sha`, `findings_summary`, and `error_message`.

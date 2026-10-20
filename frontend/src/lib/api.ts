@@ -134,10 +134,10 @@ export class ApiClient {
   jobs(repoId: number) {
     return this.all<AnalysisJob>(`/repositories/${repoId}/jobs`);
   }
-  createJob(repoId: number, commitSha?: string) {
+  createJob(repoId: number) {
     return this.request<AnalysisJob>(`/repositories/${repoId}/jobs`, {
       method: "POST",
-      body: JSON.stringify({ commit_sha: commitSha || null }),
+      body: JSON.stringify({}),
     });
   }
   deleteJob(id: string) {

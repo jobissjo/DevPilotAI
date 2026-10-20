@@ -67,7 +67,7 @@ export function Workspace({
     return (
       (statusFilter === "all" || statusFilter === job.status) &&
       (repoFilter === "all" || job.repository_id === repoFilter) &&
-      `${repo?.full_name} ${job.commit_sha || ""} ${job.id}`
+      `${repo?.full_name} ${job.id}`
         .toLowerCase()
         .includes(query.toLowerCase())
     );
@@ -672,8 +672,8 @@ export function Workspace({
           repositories={repositories}
           defaultRepo={dialog.repoId}
           onClose={() => setDialog(null)}
-          onSave={async (repoId, sha) => {
-            await data.createJob(repoId, sha);
+          onSave={async (repoId) => {
+            await data.createJob(repoId);
             setToast(
               "Analysis job queued. It will wait for an available worker.",
             );
@@ -841,7 +841,7 @@ function JobTable({
           <tr>
             <th>REPOSITORY</th>
             <th>STATUS</th>
-            <th>COMMIT</th>
+            <th>SCOPE</th>
             <th>CREATED</th>
             <th>
               <span className="sr-only">View details</span>
@@ -872,10 +872,7 @@ function JobTable({
                 <StatusBadge status={job.status} />
               </td>
               <td>
-                <span className="commit">
-                  <Icon name="branch" size={13} />
-                  {job.commit_sha?.slice(0, 7) || "—"}
-                </span>
+                <span className="commit">Full repository</span>
               </td>
               <td>
                 <time
