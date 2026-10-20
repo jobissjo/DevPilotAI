@@ -6,6 +6,8 @@ from app.models import AnalysisJob, JobStatus
 from app.repositories import AnalysisJobRepository
 from app.schemas.analysis_job import AnalysisJobCreate, AnalysisJobUpdate
 from app.services.repository_service import RepositoryService
+from app.tasks.analysis import analyze_repository
+import asyncio
 
 
 class AnalysisJobService:
@@ -15,9 +17,24 @@ class AnalysisJobService:
 
     async def create(self, user_id: int, repo_id: int, data: AnalysisJobCreate) -> AnalysisJob:
         await self.repositories.get(user_id, repo_id)
-        return await self.repository.save(
+        job = await self.repository.save(
             AnalysisJob(repository_id=repo_id)
         )
+        try:
+            await asyncio.to_thread(analyze_repository.delay, str(job.id))
+        except Exception as exc:
+            await self.repository.update(
+                job,
+                {
+                    "status": JobStatus.FAILED,
+                    "error_message": "Could not queue the analysis task",
+                    "completed_at": datetime.now(UTC),
+                },
+            )
+            raise ServiceError(503, "Could not queue analysis; check Redis") from exc
+
+        return job
+    
 
     async def get(self, user_id: int, job_id: uuid.UUID) -> AnalysisJob:
         job = await self.repository.get_for_user(job_id, user_id)

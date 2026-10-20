@@ -35,6 +35,11 @@ from app.core.errors import ServiceError
 
 class CrudTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.task_dispatch_patch = patch(
+            "app.services.analysis_job_service.analyze_repository.delay"
+        )
+        self.task_dispatch = self.task_dispatch_patch.start()
+        self.addCleanup(self.task_dispatch_patch.stop)
         self.github_lookup = patch(
             "app.services.repository_service.github_repository_id",
             new_callable=AsyncMock,
@@ -94,6 +99,7 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 201, response.text)
         self.assertEqual(response.json()["status"], "queued")
         self.assertIsNone(response.json()["commit_sha"])
+        self.task_dispatch.assert_called_with(response.json()["id"])
         return response.json()["id"]
 
     async def test_user_crud_and_password_change(self):

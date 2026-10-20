@@ -6,7 +6,7 @@
 - [x] Store repositories and analysis jobs in PostgreSQL
 
 ## Phase 2 — LangChain RAG
-- [ ] Fetch and parse repository code
+- [x] Fetch and parse repository code
 - [ ] Implement chunking, embeddings, and pgvector search
 - [ ] Build repository Q&A with source file references
 
