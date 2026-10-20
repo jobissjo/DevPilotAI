@@ -54,7 +54,10 @@ Send the returned token as `Authorization: Bearer <token>` for the endpoints bel
 `GET /api/auth/users/me` is retained for existing clients. List endpoints accept
 `offset` (default 0) and `limit` (default 20, maximum 100).
 
-Create repositories with `github_repo_id`, `full_name`, and an HTTP(S) `clone_url`.
+Create repositories with `full_name` and a matching GitHub HTTPS `clone_url`.
+The backend verifies public repositories through GitHub's API and stores the returned
+`github_repo_id`. Private repositories require GitHub authentication, which is not
+configured yet.
 Create jobs with `{}` or an optional `commit_sha`. Jobs start as `queued` and may
 transition to `running` or `failed`; running jobs may become `completed` or
 `failed`. The service sets `completed_at` when a job reaches a terminal status.

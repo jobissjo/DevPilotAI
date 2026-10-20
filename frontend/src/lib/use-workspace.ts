@@ -67,6 +67,7 @@ export function useWorkspace(api: ApiClient, demo: boolean) {
       ? {
           ...data,
           id: id ?? Date.now(),
+          github_repo_id: repositories.find((repo) => repo.id === id)?.github_repo_id ?? Date.now(),
           user_id: 1,
           created_at: new Date().toISOString(),
         }

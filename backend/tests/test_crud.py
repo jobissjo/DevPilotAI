@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import unittest
 import uuid
+from unittest.mock import AsyncMock, patch
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -28,10 +29,19 @@ from app.main import app
 from app.models import AnalysisJob, Repository, User
 from app.repositories.base import RepositoryConflict
 from app.repositories.user import UserRepository
+from app.services.repository_service import github_repository_id
+from app.core.errors import ServiceError
 
 
 class CrudTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.github_lookup = patch(
+            "app.services.repository_service.github_repository_id",
+            new_callable=AsyncMock,
+            return_value=123,
+        )
+        self.github_lookup.start()
+        self.addCleanup(self.github_lookup.stop)
         self.engine = create_async_engine("sqlite+aiosqlite://")
 
         @event.listens_for(self.engine.sync_engine, "connect")
@@ -70,7 +80,7 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
 
     async def create_repository(self):
         response = await self.client.post("/api/repositories", headers=self.headers, json={
-            "github_repo_id": 123, "full_name": "owner/project",
+            "full_name": "owner/project",
             "clone_url": "https://github.com/owner/project.git",
         })
         self.assertEqual(response.status_code, 201, response.text)
@@ -129,6 +139,10 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_repository_crud_and_pagination(self):
         repo_id = await self.create_repository()
+        self.assertEqual(
+            (await self.client.get(f"/api/repositories/{repo_id}", headers=self.headers)).json()["github_repo_id"],
+            123,
+        )
         response = await self.client.get(f"/api/repositories/{repo_id}", headers=self.headers)
         self.assertEqual(response.status_code, 200)
         response = await self.client.patch(f"/api/repositories/{repo_id}", headers=self.headers,
@@ -248,7 +262,6 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
             ("/api/users/me", {"password": "é" * 40}),
             (f"/api/repositories/{repo_id}", {"full_name": None}),
             (f"/api/repositories/{repo_id}", {"clone_url": "invalid"}),
-            (f"/api/repositories/{repo_id}", {"github_repo_id": -1}),
             (f"/api/jobs/{job_id}", {"status": None}),
             (f"/api/jobs/{job_id}", {"status": "invalid"}),
         ):
@@ -282,6 +295,32 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(response.status_code, 400)
         self.assertNotIn("access-control-allow-origin", response.headers)
+
+
+class GitHubLookupTests(unittest.IsolatedAsyncioTestCase):
+    async def test_fetches_id_for_matching_repository(self):
+        response = httpx.Response(200, json={"id": 456, "full_name": "owner/project"},
+                                  request=httpx.Request("GET", "https://api.github.com/repos/owner/project"))
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=response) as get:
+            repo_id = await github_repository_id(
+                "owner/project", "https://github.com/owner/project.git"
+            )
+        self.assertEqual(repo_id, 456)
+        self.assertEqual(get.await_args.args[0], "https://api.github.com/repos/owner/project")
+
+    async def test_rejects_mismatched_clone_url_before_lookup(self):
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as get:
+            with self.assertRaises(ServiceError) as error:
+                await github_repository_id("owner/project", "https://github.com/other/project.git")
+        self.assertEqual(error.exception.status_code, 422)
+        get.assert_not_awaited()
+
+    async def test_handles_missing_repository(self):
+        response = httpx.Response(404, request=httpx.Request("GET", "https://api.github.com/repos/owner/project"))
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=response):
+            with self.assertRaises(ServiceError) as error:
+                await github_repository_id("owner/project", "https://github.com/owner/project.git")
+        self.assertEqual(error.exception.status_code, 404)
 
 
 class ArchitectureTests(unittest.TestCase):

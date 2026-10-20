@@ -28,10 +28,7 @@ describe("Workspace integration", () => {
       within(modal).getByLabelText("Repository name"),
       "alex/my-app",
     );
-    await user.type(
-      within(modal).getByLabelText(/GitHub repository ID/),
-      "1234",
-    );
+    expect(within(modal).queryByLabelText(/GitHub repository ID/)).toBeNull();
     await user.type(
       within(modal).getByLabelText("Clone URL"),
       "https://github.com/alex/my-app.git",

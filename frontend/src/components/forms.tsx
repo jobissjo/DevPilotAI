@@ -28,7 +28,6 @@ export function RepositoryForm({
     try {
       await onSave(
         {
-          github_repo_id: Number(fields.get("github_repo_id")),
           full_name: fullName,
           clone_url: String(fields.get("clone_url")).trim(),
         },
@@ -59,21 +58,6 @@ export function RepositoryForm({
             defaultValue={repository?.full_name}
             required
           />
-        </label>
-        <label>
-          GitHub repository ID
-          <input
-            name="github_repo_id"
-            type="number"
-            min="1"
-            step="1"
-            required
-            placeholder="123456789"
-            defaultValue={repository?.github_repo_id}
-          />
-          <small className="field-hint">
-            The numeric ID returned by GitHub’s repository API.
-          </small>
         </label>
         <label>
           Clone URL

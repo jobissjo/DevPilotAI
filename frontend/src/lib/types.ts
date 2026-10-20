@@ -28,7 +28,7 @@ export interface AnalysisJob {
 
 export type RepositoryInput = Pick<
   Repository,
-  "github_repo_id" | "full_name" | "clone_url"
+  "full_name" | "clone_url"
 >;
 export type UserUpdate = Partial<Pick<User, "full_name" | "email">> & {
   password?: string;

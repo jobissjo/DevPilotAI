@@ -8,17 +8,15 @@ RepositoryName = Annotated[str, StringConstraints(strip_whitespace=True, min_len
 
 
 class RepositoryCreate(SQLModel):
-    github_repo_id: int = Field(gt=0)
     full_name: RepositoryName
     clone_url: HttpUrl
 
 
 class RepositoryUpdate(SQLModel):
-    github_repo_id: int | None = Field(default=None, gt=0)
     full_name: RepositoryName | None = None
     clone_url: HttpUrl | None = None
 
-    @field_validator("github_repo_id", "full_name", "clone_url")
+    @field_validator("full_name", "clone_url")
     @classmethod
     def reject_null(cls, value):
         if value is None:
