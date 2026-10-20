@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.services.core_loader import load_source_documents
 from app.services.code_chunker import chunk_documents
+from app.services.vector_store import index_chunks
 
 
 async def _analyze_repository(job_id: uuid.UUID) -> None:
@@ -21,11 +22,12 @@ async def _analyze_repository(job_id: uuid.UUID) -> None:
             job = await session.get(AnalysisJob, job_id)
             if job is None or job.status != JobStatus.QUEUED:
                 return
-
+            
             repository = await session.get(Repository, job.repository_id)
             if repository is None:
                 return
 
+            repository_id = job.repository_id
             clone_url = repository.clone_url
             job.status = JobStatus.RUNNING
             session.add(job)
@@ -66,6 +68,10 @@ async def _analyze_repository(job_id: uuid.UUID) -> None:
                     ),
                 }
                 # Embed and store the chunks here before the temporary clone is removed.
+
+                indexed_count = await asyncio.to_thread(
+                    index_chunks, repository_id, str(job_id), chunks
+                )
 
             async with AsyncSession(engine) as session:
                 job = await session.get(AnalysisJob, job_id)
