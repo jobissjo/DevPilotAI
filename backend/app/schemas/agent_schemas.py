@@ -13,3 +13,14 @@ class FindingSchema(BaseModel):
 class ReviewResultSchema(BaseModel):
     findings:list[FindingSchema]
 
+
+
+class TestSuggestionSchema(BaseModel):
+    line: int = Field(ge=1)
+    name: str
+    test_code: str
+
+
+
+class TestPlanSchema(BaseModel):
+    tests: list[TestSuggestionSchema]
