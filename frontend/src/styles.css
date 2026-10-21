@@ -1514,6 +1514,15 @@ select {
 .repo-card-footer .text-button {
   font-size: 9px;
 }
+.repo-card-actions-bottom {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.repo-card-actions-bottom .text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 .analyses-panel .list-toolbar {
   margin: 0;
   padding: 20px;
@@ -1775,10 +1784,104 @@ select {
   border-radius: 7px;
   padding: 2px 15px;
 }
+.review-note {
+  color: #aa98b7;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.review-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 15px;
+}
+.review-overview span {
+  border: 1px solid #3d2d48;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #aa98b7;
+  font-size: 11px;
+}
+.review-overview strong {
+  color: #e8d9f3;
+  font-size: 13px;
+}
+.review-list {
+  display: grid;
+  gap: 11px;
+}
+.review-card {
+  border: 1px solid #3d2d48;
+  border-radius: 8px;
+  background: #211827;
+  padding: 14px;
+}
+.review-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.review-severity, .review-category {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.review-severity {
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: #443340;
+  color: #f0c0d1;
+}
+.severity-high { background: #532a39; color: #ffb5c3; }
+.severity-medium { background: #51402b; color: #f6d18f; }
+.severity-low { background: #2e403f; color: #addbd3; }
+.review-category { color: #aa98b7; }
+.review-card h4 {
+  color: #e8d9f3;
+  font-size: 13px;
+  margin: 10px 0 5px;
+}
+.review-card p {
+  color: #c7b2d8;
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+}
+.review-card .review-location { color: #a992bc; }
+.review-evidence {
+  background: #17121c;
+  border: 1px solid #392b43;
+  border-radius: 5px;
+  color: #dac8e6;
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 10px 0 0;
+  overflow-x: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-errors {
+  border: 1px solid #6a4a37;
+  border-radius: 7px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  color: #e4c6a1;
+  font-size: 11px;
+}
+.review-errors h4 { margin: 0 0 7px; font-size: 12px; }
+.review-errors p { margin: 5px 0; overflow-wrap: anywhere; }
 .qa-panel {
   border-top: 1px solid #3d2d48;
   margin-top: 22px;
   padding-top: 20px;
+}
+.modal > .qa-panel {
+  border-top: 0;
+  margin-top: 8px;
+  padding-top: 0;
 }
 .qa-panel h3, .qa-answer h4 {
   font-size: 14px;

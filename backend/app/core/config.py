@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,6 +16,9 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str
     GROQ_API_KEY: str | None = None
     GROQ_MODEL: str = "openai/gpt-oss-20b"
+    LLM_PROVIDER: Literal["groq", "openrouter"] = "groq"
+    OPENROUTER_API_KEY: str | None = None
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct"
 
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 

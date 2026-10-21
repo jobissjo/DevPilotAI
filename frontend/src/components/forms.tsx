@@ -259,39 +259,98 @@ function Findings({ value, depth = 0 }: { value: unknown; depth?: number }) {
   );
 }
 
+type ReviewFinding = {
+  category: string;
+  source: string;
+  line: number;
+  severity: string;
+  title: string;
+  explanation: string;
+  evidence: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readFinding(value: unknown): ReviewFinding | null {
+  if (!isRecord(value)) return null;
+  const { category, source, line, severity, title, explanation, evidence } = value;
+  if (
+    typeof category !== "string" ||
+    typeof source !== "string" ||
+    typeof line !== "number" ||
+    typeof severity !== "string" ||
+    typeof title !== "string" ||
+    typeof explanation !== "string" ||
+    typeof evidence !== "string"
+  ) return null;
+  return { category, source, line, severity, title, explanation, evidence };
+}
+
+function ReviewFindings({ summary }: { summary: Record<string, unknown> }) {
+  const reviews = Array.isArray(summary.reviews) ? summary.reviews : [];
+  const errors = Array.isArray(summary.review_errors) ? summary.review_errors : [];
+  const findings = reviews.flatMap((review) => {
+    if (!isRecord(review)) return [];
+    return ["quality", "security"].flatMap((category) =>
+      Array.isArray(review[category])
+        ? review[category].map(readFinding).filter((item): item is ReviewFinding => item !== null)
+        : [],
+    );
+  });
+  const fileCount = typeof summary.source_file_count === "number" ? summary.source_file_count : null;
+  const reviewedCount = typeof summary.reviewed_file_count === "number" ? summary.reviewed_file_count : reviews.length;
+
+  return (
+    <section className="findings">
+      <h3><Icon name="spark" size={17} /> Review findings</h3>
+      <p className="review-note">AI-generated suggestions. Check the cited code before making changes.</p>
+      <div className="review-overview">
+        <span><strong>{reviewedCount}</strong> {reviewedCount === 1 ? "file" : "files"} reviewed{fileCount !== null && ` of ${fileCount} indexed`}</span>
+        <span><strong>{findings.length}</strong> suggestions</span>
+      </div>
+      {findings.length > 0 ? (
+        <div className="review-list">
+          {findings.map((finding, index) => (
+            <article className="review-card" key={`${finding.category}-${finding.source}-${finding.line}-${index}`}>
+              <div className="review-card-top">
+                <span className={`review-severity severity-${finding.severity.toLowerCase()}`}>{finding.severity}</span>
+                <span className="review-category">{finding.category}</span>
+              </div>
+              <h4>{finding.title}</h4>
+              <p className="review-location mono">{finding.source}:{finding.line}</p>
+              <p>{finding.explanation}</p>
+              <pre className="review-evidence">{finding.evidence}</pre>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">No review suggestions were reported.</p>
+      )}
+      {errors.length > 0 && (
+        <div className="review-errors">
+          <h4>Reviewer errors</h4>
+          {errors.map((error, index) => isRecord(error) && (
+            <p key={index}>{String(error.source ?? "File")}: {String(error.error ?? "Review failed")}</p>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function JobDetails({
   job,
   repository,
-  onAsk,
   onClose,
   onDelete,
 }: {
   job: AnalysisJob;
   repository?: Repository;
-  onAsk?: (question: string) => Promise<QuestionAnswer>;
   onClose: () => void;
   onDelete: () => void;
 }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<QuestionAnswer | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [askError, setAskError] = useState("");
-
-  async function ask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!onAsk || !question.trim()) return;
-    setAsking(true);
-    setAskError("");
-    setAnswer(null);
-    try {
-      setAnswer(await onAsk(question.trim()));
-    } catch (cause) {
-      setAskError(errorMessage(cause));
-    } finally {
-      setAsking(false);
-    }
-  }
-
   return (
     <Modal
       title="Analysis details"
@@ -322,12 +381,21 @@ export function JobDetails({
       </dl>
       {job.error_message && <ErrorMessage>{job.error_message}</ErrorMessage>}
       {job.findings_summary ? (
-        <section className="findings">
-          <h3>
-            <Icon name="spark" size={17} /> Findings
-          </h3>
-          <Findings value={job.findings_summary} />
-        </section>
+        Array.isArray(job.findings_summary.reviews) ? (
+          <ReviewFindings summary={job.findings_summary} />
+        ) : (
+          <section className="findings">
+            <h3>
+              <Icon name="spark" size={17} /> Findings
+            </h3>
+            {typeof job.findings_summary.source_file_count === "number" && (
+              <p className="review-note">
+                This analysis saved code counts but no agent reviews. Queue a new analysis after restarting the worker to see review suggestions.
+              </p>
+            )}
+            <Findings value={job.findings_summary} />
+          </section>
+        )
       ) : (
         !job.error_message && (
           <div className="info-banner">
@@ -342,45 +410,6 @@ export function JobDetails({
           </div>
         )
       )}
-      {job.status === "completed" && onAsk && (
-        <section className="qa-panel">
-          <h3>Ask about this repository</h3>
-          <p className="muted">Answers use code indexed by this analysis.</p>
-          <form onSubmit={(event) => void ask(event)}>
-            <label htmlFor="repo-question">Your question</label>
-            <textarea
-              id="repo-question"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Where is user login handled?"
-              maxLength={1000}
-              required
-            />
-            <button className="button primary" disabled={asking || !question.trim()}>
-              {asking ? "Finding answer…" : "Ask question"}
-            </button>
-          </form>
-          {askError && <ErrorMessage>{askError}</ErrorMessage>}
-          {answer && (
-            <div className="qa-answer" aria-live="polite">
-              <h4>Answer</h4>
-              <p>{answer.answer}</p>
-              {answer.sources.length > 0 && (
-                <>
-                  <h4>Source excerpts</h4>
-                  <ol>
-                    {answer.sources.map((source, index) => (
-                      <li key={`${source.source}-${source.start_line}-${index}`}>
-                        <span className="mono">[{index + 1}] {source.source}:{source.start_line}–{source.end_line}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </div>
-          )}
-        </section>
-      )}
       <div className="modal-actions spread">
         <button className="button ghost danger-text" onClick={onDelete}>
           <Icon name="trash" size={15} />
@@ -389,6 +418,80 @@ export function JobDetails({
         <button className="button secondary" onClick={onClose}>
           Close
         </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function RepositoryQuestion({
+  repository,
+  onAsk,
+  onClose,
+}: {
+  repository: Repository;
+  onAsk: (question: string) => Promise<QuestionAnswer>;
+  onClose: () => void;
+}) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<QuestionAnswer | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState("");
+
+  async function ask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!question.trim()) return;
+    setAsking(true);
+    setAskError("");
+    setAnswer(null);
+    try {
+      setAnswer(await onAsk(question.trim()));
+    } catch (cause) {
+      setAskError(errorMessage(cause));
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  return (
+    <Modal title="Ask about this repository" description={repository.full_name} onClose={onClose}>
+      <section className="qa-panel">
+        <p className="muted">Ask questions about the code indexed for this repository.</p>
+        <form onSubmit={(event) => void ask(event)}>
+          <label htmlFor="repo-question">Your question</label>
+          <textarea
+            id="repo-question"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Where is user login handled?"
+            maxLength={1000}
+            required
+          />
+          <button className="button primary" disabled={asking || !question.trim()}>
+            {asking ? "Finding answer…" : "Ask question"}
+          </button>
+        </form>
+        {askError && <ErrorMessage>{askError}</ErrorMessage>}
+        {answer && (
+          <div className="qa-answer" aria-live="polite">
+            <h4>Answer</h4>
+            <p>{answer.answer}</p>
+            {answer.sources.length > 0 && (
+              <>
+                <h4>Source excerpts</h4>
+                <ol>
+                  {answer.sources.map((source, index) => (
+                    <li key={`${source.source}-${source.start_line}-${index}`}>
+                      <span className="mono">[{index + 1}] {source.source}:{source.start_line}–{source.end_line}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        )}
+      </section>
+      <div className="modal-actions">
+        <button className="button secondary" onClick={onClose}>Close</button>
       </div>
     </Modal>
   );

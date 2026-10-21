@@ -11,3 +11,4 @@ wheels/
 .env
 .uv-cache/
 .npm-cache/
+scripts/

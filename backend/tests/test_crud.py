@@ -215,13 +215,16 @@ class CrudTests(unittest.IsolatedAsyncioTestCase):
                                 json={"status": "running"})
         await self.client.patch(f"/api/jobs/{job_id}", headers=self.headers,
                                 json={"status": "completed"})
-        response = await self.client.post(url, headers=self.headers,
-                                          json={"question": "Where is login?"})
+        with patch.object(settings, "LLM_PROVIDER", "groq"), \
+             patch.object(settings, "GROQ_API_KEY", None):
+            response = await self.client.post(url, headers=self.headers,
+                                              json={"question": "Where is login?"})
         self.assertEqual(response.status_code, 503)
 
         match = {"source": "app/auth.py", "start_line": 12, "end_line": 24,
                  "content": "def login(): pass"}
-        with patch.object(settings, "GROQ_API_KEY", "test-key"), \
+        with patch.object(settings, "LLM_PROVIDER", "groq"), \
+             patch.object(settings, "GROQ_API_KEY", "test-key"), \
              patch("app.services.analysis_job_service.search_code", return_value=[match]) as search, \
              patch("app.services.analysis_job_service.answer_from_code",
                    new_callable=AsyncMock, return_value="Login is in app/auth.py [1].") as answer:

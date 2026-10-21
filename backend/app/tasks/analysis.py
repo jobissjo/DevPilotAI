@@ -12,6 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.services.core_loader import load_source_documents
 from app.services.code_chunker import chunk_documents
 from app.services.vector_store import index_chunks
+from app.agents.review_agents import review_code
 
 
 async def _analyze_repository(job_id: uuid.UUID) -> None:
@@ -72,6 +73,36 @@ async def _analyze_repository(job_id: uuid.UUID) -> None:
                 indexed_count = await asyncio.to_thread(
                     index_chunks, repository_id, str(job_id), chunks
                 )
+                reviewed = []
+                candidates = sorted(
+                    (
+                        doc for doc in documents
+                        if doc.metadata["source"].endswith(".py")
+                        and len(doc.page_content) <= 6000
+                    ),
+                    key=lambda doc: doc.metadata["source"],
+                )[:2]
+                review_errors = []
+                for document in candidates:
+                    source = document.metadata["source"]
+                    try:
+                        result = await asyncio.to_thread(
+                            review_code,
+                            source,
+                            document.page_content,
+                        )
+                        reviewed.append({
+                            "source": source,
+                            "quality": result["quality"],
+                            "security": result["security"],
+                        })
+                    except Exception as exc:
+                        review_errors.append({"source": source, "error": str(exc)[:300]})
+
+                findings["review_status"] = "suggested"
+                findings["reviewed_file_count"] = len(reviewed)
+                findings["reviews"] = reviewed
+                findings["review_errors"] = review_errors
 
             async with AsyncSession(engine) as session:
                 job = await session.get(AnalysisJob, job_id)

@@ -4,7 +4,7 @@ from pathlib import Path
 from langchain_core.documents import Document
 
 SOURCE_SUFFIXES = {".py", ".js", ".jsx", ".ts", ".tsx"}
-SKIP_DIRS = {".git", "node_modules", ".venv", "dist", "build"}
+SKIP_DIRS = {".git", "node_modules", ".venv", "dist", "build", "alembic"}
 MAX_FILE_BYTES = 512_000
 
 def load_source_documents(repo_path: Path) -> Iterator[Document]:

@@ -57,8 +57,24 @@ Send the returned token as `Authorization: Bearer <token>` for the endpoints bel
 After a repository analysis completes, ask about its indexed code with
 `POST /api/jobs/{job_id}/questions` and `{ "question": "Where is login handled?" }`.
 The endpoint requires the job owner, searches that job's Chroma chunks, and returns
-an answer with source file paths and line ranges. Set `GROQ_API_KEY` in
-`backend/.env` to enable answers. `GROQ_MODEL` defaults to `openai/gpt-oss-20b`.
+an answer with source file paths and line ranges. Review agents and Q&A use the
+same selectable model provider. Add one of these configurations to `backend/.env`:
+
+```dotenv
+LLM_PROVIDER=groq
+GROQ_API_KEY=your-groq-key
+GROQ_MODEL=openai/gpt-oss-20b
+```
+
+```dotenv
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
+```
+
+Groq is the default provider. The OpenRouter model must support tool calling for
+CrewAI's structured findings. Restart the API and Celery worker after changing
+the provider; queued analyses use the worker's current environment.
 
 Create repositories with `full_name` and a matching GitHub HTTPS `clone_url`.
 The backend verifies public repositories through GitHub's API and stores the returned

@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime
 
 from app.core.errors import ServiceError
-from app.core.config import settings
 from app.models import AnalysisJob, JobStatus
 from app.repositories import AnalysisJobRepository
 from app.schemas.analysis_job import (
@@ -11,6 +10,7 @@ from app.schemas.analysis_job import (
 from app.services.repository_service import RepositoryService
 from app.services.question_service import answer_from_code
 from app.services.vector_store import search_code
+from app.core.llm_provider import selected_llm
 from app.tasks.analysis import analyze_repository
 import asyncio
 
@@ -75,8 +75,10 @@ class AnalysisJobService:
         job = await self.get(user_id, job_id)
         if job.status != JobStatus.COMPLETED:
             raise ServiceError(409, "Finish indexing this analysis before asking questions")
-        if not settings.GROQ_API_KEY:
-            raise ServiceError(503, "Set GROQ_API_KEY on the backend to enable Q&A")
+        try:
+            selected_llm()
+        except ValueError as exc:
+            raise ServiceError(503, str(exc)) from exc
         try:
             matches = await asyncio.to_thread(search_code, str(job_id), question, 8)
         except Exception as exc:

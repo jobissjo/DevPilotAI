@@ -11,9 +11,9 @@
 - [x] Build repository Q&A with source file references
 
 ## Phase 3 — CrewAI Agents
-- [ ] Create code quality and security reviewer agents
-- [ ] Create test generation and documentation agents
-- [ ] Return structured findings with file references
+- [x] Create code quality and security reviewer agents
+- [x] Create test generation and documentation agents
+- [x] Return structured findings with file references
 
 ## Phase 4 — LangGraph Workflow
 - [ ] Build stateful analysis workflow

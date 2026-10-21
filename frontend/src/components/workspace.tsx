@@ -8,7 +8,7 @@ import type {
   UserUpdate,
 } from "../lib/types";
 import { useWorkspace } from "../lib/use-workspace";
-import { ConfirmDialog, JobDetails, JobForm, RepositoryForm } from "./forms";
+import { ConfirmDialog, JobDetails, JobForm, RepositoryForm, RepositoryQuestion } from "./forms";
 import { Icon } from "./icon";
 import type { IconName } from "./icon";
 import { Settings } from "./settings";
@@ -19,6 +19,7 @@ type Dialog =
   | { type: "repository"; repository?: Repository }
   | { type: "job"; repoId?: number }
   | { type: "details"; jobId: string }
+  | { type: "question"; repoId: number }
   | { type: "delete-repo"; repository: Repository }
   | { type: "delete-job"; job: AnalysisJob }
   | { type: "delete-account" };
@@ -76,6 +77,12 @@ export function Workspace({
     dialog?.type === "details"
       ? jobs.find((job) => job.id === dialog.jobId)
       : undefined;
+  const questionRepository = dialog?.type === "question"
+    ? repositories.find((repo) => repo.id === dialog.repoId)
+    : undefined;
+  const questionJob = questionRepository
+    ? sortedJobs.find((job) => job.repository_id === questionRepository.id && job.status === "completed")
+    : undefined;
 
   useEffect(() => {
     if (!toast) return;
@@ -514,6 +521,9 @@ export function Workspace({
                           )}
                           index={index}
                           onAnalyze={() => queue(repo.id)}
+                          onAsk={!demo && sortedJobs.some(
+                            (job) => job.repository_id === repo.id && job.status === "completed",
+                          ) ? () => setDialog({ type: "question", repoId: repo.id }) : undefined}
                           onEdit={() =>
                             setDialog({ type: "repository", repository: repo })
                           }
@@ -684,12 +694,18 @@ export function Workspace({
       {selectedJob && (
         <JobDetails
           job={selectedJob}
-          onAsk={demo ? undefined : (question) => api.askJob(selectedJob.id, question)}
           repository={repositories.find(
             (repo) => repo.id === selectedJob.repository_id,
           )}
           onClose={() => setDialog(null)}
           onDelete={() => setDialog({ type: "delete-job", job: selectedJob })}
+        />
+      )}
+      {questionRepository && questionJob && (
+        <RepositoryQuestion
+          repository={questionRepository}
+          onAsk={(question) => api.askJob(questionJob.id, question)}
+          onClose={() => setDialog(null)}
         />
       )}
       {dialog?.type === "delete-repo" && (
@@ -906,6 +922,7 @@ function RepositoryCard({
   jobs,
   index,
   onAnalyze,
+  onAsk,
   onEdit,
   onDelete,
   onView,
@@ -914,6 +931,7 @@ function RepositoryCard({
   jobs: AnalysisJob[];
   index: number;
   onAnalyze: () => void;
+  onAsk?: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onView: () => void;
@@ -975,10 +993,20 @@ function RepositoryCard({
             ? `Last review ${relativeTime(latest.created_at)}`
             : `Added ${relativeTime(repo.created_at)}`}
         </span>
-        <button className="text-button" onClick={onAnalyze}>
-          Analyze
-          <Icon name="arrow" size={14} />
-        </button>
+        <div className="repo-card-actions-bottom">
+          <button
+            className="text-button"
+            onClick={onAsk}
+            disabled={!onAsk}
+            title={onAsk ? "Ask about this repository" : "Complete an analysis to ask questions"}
+          >
+            Ask code
+          </button>
+          <button className="text-button" onClick={onAnalyze}>
+            Analyze
+            <Icon name="arrow" size={14} />
+          </button>
+        </div>
       </div>
     </article>
   );
